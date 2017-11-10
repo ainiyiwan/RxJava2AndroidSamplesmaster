@@ -25,6 +25,7 @@ import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by amitshekhar on 27/08/16.
+ * 已完成
  */
 public class ZipExampleActivity extends AppCompatActivity {
 
@@ -64,6 +65,29 @@ public class ZipExampleActivity extends AppCompatActivity {
                 // Run on a background thread
                 .subscribeOn(Schedulers.io())
                 // Be notified on the main thread
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(getObserver());
+
+        Observable.zip(getCricketFansObservable(), getFootballFansObservable(),
+                new BiFunction<List<User>, List<User>, List<User>>() {
+
+                    @Override
+                    public List<User> apply(List<User> users, List<User> users2) throws Exception {
+                        return Utils.filterUserWhoLovesBoth(users, users2);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(getObserver());
+
+        Observable.zip(getCricketFansObservable(), getFootballFansObservable(),
+                new BiFunction<List<User>, List<User>, List<User>>() {
+                    @Override
+                    public List<User> apply(List<User> users, List<User> users2) throws Exception {
+                        return Utils.filterUserWhoLovesBoth(users, users2);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(getObserver());
     }

@@ -18,6 +18,7 @@ import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by amitshekhar on 27/08/16.
+ *  已结束
  */
 public class SimpleExampleActivity extends AppCompatActivity {
 
@@ -50,10 +51,19 @@ public class SimpleExampleActivity extends AppCompatActivity {
                 // Be notified on the main thread
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(getObserver());
+
+        getObservable1()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(getObserver1());
     }
 
     private Observable<String> getObservable() {
         return Observable.just("Cricket", "Football");
+    }
+
+    private Observable<String> getObservable1(){
+        return Observable.just("zhang","god");
     }
 
     private Observer<String> getObserver() {
@@ -86,6 +96,37 @@ public class SimpleExampleActivity extends AppCompatActivity {
             }
         };
     }
+
+    private Observer<String> getObserver1(){
+        return new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                Log.d(TAG, " onSubscribe : " + d.isDisposed());
+            }
+
+            @Override
+            public void onNext(String value) {
+                textView.append(" onNext : value : " + value);
+                textView.append(AppConstant.LINE_SEPARATOR);
+                Log.d(TAG, " onNext : value : " + value);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                textView.append(" onError : " + e.getMessage());
+                textView.append(AppConstant.LINE_SEPARATOR);
+                Log.d(TAG, " onError : " + e.getMessage());
+            }
+
+            @Override
+            public void onComplete() {
+                textView.append(" onComplete");
+                textView.append(AppConstant.LINE_SEPARATOR);
+                Log.d(TAG, " onComplete");
+            }
+        };
+    }
+
 
 
 }

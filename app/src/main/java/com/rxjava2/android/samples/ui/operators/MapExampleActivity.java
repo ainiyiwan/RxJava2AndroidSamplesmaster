@@ -26,6 +26,7 @@ import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by amitshekhar on 27/08/16.
+ * 已完成
  */
 public class MapExampleActivity extends AppCompatActivity {
 
@@ -68,6 +69,17 @@ public class MapExampleActivity extends AppCompatActivity {
                     }
                 })
                 .subscribe(getObserver());
+
+        getObservable1()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Function<List<ApiUser>, List<User>>() {
+                    @Override
+                    public List<User> apply(List<ApiUser> apiUsers) throws Exception {
+                        return Utils.convertApiUserListToUserList(apiUsers);
+                    }
+                })
+                .subscribe(getObserver());
     }
 
     private Observable<List<ApiUser>> getObservable() {
@@ -75,6 +87,18 @@ public class MapExampleActivity extends AppCompatActivity {
             @Override
             public void subscribe(ObservableEmitter<List<ApiUser>> e) throws Exception {
                 if (!e.isDisposed()) {
+                    e.onNext(Utils.getApiUserList());
+                    e.onComplete();
+                }
+            }
+        });
+    }
+
+    private Observable<List<ApiUser>> getObservable1(){
+        return Observable.create(new ObservableOnSubscribe<List<ApiUser>>() {
+            @Override
+            public void subscribe(ObservableEmitter<List<ApiUser>> e) throws Exception {
+                if (!e.isDisposed()){
                     e.onNext(Utils.getApiUserList());
                     e.onComplete();
                 }
