@@ -1,0 +1,83 @@
+博客来源（http://www.jianshu.com/p/464fa025229e）
+1. Disposable, 这个单词的字面意思是一次性用品,用完即可丢弃的. 那么在RxJava中怎么去理解它呢, 
+对应于上面的水管的例子, 我们可以把它理解成两根管道之间的一个机关, 当调用它的dispose()方法时, 
+它就会将两根管道切断, 从而导致下游收不到事件.
+
+注意: 调用dispose()并不会导致上游不再继续发送事件, 上游会继续发送剩余的事件.
+
+
+博客来源（http://www.jianshu.com/p/8818b98c44e2）
+1. RxJava中, 当我们在主线程中去创建一个上游Observable来发送事件, 则这个上游默认就在主线程发送事件.
+  
+  当我们在主线程去创建一个下游Observer来接收事件, 则这个下游默认就在主线程中接收事件
+  
+2. 简单的来说, subscribeOn() 指定的是上游发送事件的线程, observeOn() 指定的是下游接收事件的线程.
+   
+   多次指定上游的线程只有第一次指定的有效, 也就是说多次调用subscribeOn() 只有第一次的有效, 其余的会被忽略.
+   
+   多次指定下游的线程是可以的, 也就是说每调用一次observeOn() , 下游的线程就会切换一次.
+   
+3. 在RxJava中, 已经内置了很多线程选项供我们选择, 例如有
+   
+   Schedulers.io() 代表io操作的线程, 通常用于网络,读写文件等io密集型的操作
+   Schedulers.computation() 代表CPU计算密集型的操作, 例如需要大量计算的操作
+   Schedulers.newThread() 代表一个常规的新线程
+   AndroidSchedulers.mainThread() 代表Android的主线程
+   
+4. 但我们忽略了一点, 如果在请求的过程中Activity已经退出了, 这个时候如果回到主线程去更新UI, 那么APP肯定就崩溃了, 怎么办呢, 
+上一节我们说到了Disposable , 说它是个开关, 调用它的dispose()方法时就会切断水管, 使得下游收不到事件, 既然收不到事件,
+ 那么也就不会再去更新UI了. 因此我们可以在Activity中将这个Disposable 保存起来, 当Activity退出时, 切断它即可.
+  
+  那如果有多个Disposable 该怎么办呢, RxJava中已经内置了一个容器CompositeDisposable, 
+  每当我们得到一个Disposable时就调用CompositeDisposable.add()将它添加到容器中, 在退出的时候, 
+  调用CompositeDisposable.clear() 即可切断所有的水管.
+  
+博客来源（http://www.jianshu.com/p/128e662906af）
+1. FlatMap将一个发送事件的上游Observable变换为多个发送事件的Observables，然后将它们发射的事件合并后放进一个单独的Observable里.(看博客图片)
+
+2. flatMap 无序  concatMap 有序
+
+博客来源（http://www.jianshu.com/p/bb58571cdb64）
+1. Zip通过一个函数将多个Observable发送的事件结合到一起，然后发送这些组合到一起的事件. 它按照严格的顺序应用这个函数。
+它只发射与发射数据项最少的那个Observable一样多的数据。（看博客图片）
+
+博客来源（http://www.jianshu.com/p/0f2d6c2387c9）
+1. 简单讲解背压
+
+博客来源（http://www.jianshu.com/p/e4c6d7989356）
+1. sample操作符, 简单做个介绍, 这个操作符每隔指定的时间就从上游中取出一个事件发送给下游. 这里我们让它每隔2秒取一个事件给下游
+   
+博客来源（http://www.jianshu.com/p/9b1304435564）
+1. 之前我们所的上游和下游分别是Observable和Observer, 这次不一样的是上游变成了Flowable, 下游变成了Subscriber, 
+但是水管之间的连接还是通过subscribe(), 我们来看看最基本的用法吧
+
+2. 另外的一个区别是在下游的onSubscribe方法中传给我们的不再是Disposable了, 而是Subscription, 它俩有什么区别呢, 
+首先它们都是上下游中间的一个开关, 之前我们说调用Disposable.dispose()方法可以切断水管, 同样的调用Subscription.cancel()也可以切断水管
+
+3. 这是因为Flowable在设计的时候采用了一种新的思路也就是响应式拉取的方式来更好的解决上下游流速不均衡的问题, 
+   与我们之前所讲的控制数量和控制速度不太一样, 这种方式用通俗易懂的话来说就好比是叶问打鬼子,
+   我们把上游看成小日本, 把下游当作叶问, 当调用Subscription.request(1)时, 叶问就说我要打一个!
+   然后小日本就拿出一个鬼子给叶问, 让他打, 等叶问打死这个鬼子之后, 再次调用request(10), 叶问就又说我要打十个! 
+   然后小日本又派出十个鬼子给叶问, 然后就在边上看热闹, 看叶问能不能打死十个鬼子, 等叶问打死十个鬼子后再继续要鬼子接着打..
+   
+   为什么上下游没有工作在同一个线程时, 上游却正确的发送了所有的事件呢? 这是因为在Flowable里默认有一个大小为128的水缸, 
+   当上下游工作在不同的线程中时, 上游就会先把事件发送到这个水缸中, 因此, 下游虽然没有调用request, 但是上游在水缸中保存着这些事件,
+    只有当下游调用request时, 才从水缸里取出事件发给下游.
+    
+    Flowable源码：  **static final int BUFFER_SIZE;
+                   static {
+                       BUFFER_SIZE = Math.max(1, Integer.getInteger("rx2.buffer-size", 128));
+                   }**
+   
+   
+博客来源（http://www.jianshu.com/p/a75ecf461e02）
+1. 这次我们用的策略是BackpressureStrategy.BUFFER, 这就是我们的新水缸啦, 这个水缸就比原来的水缸牛逼多了,如果说原来的水缸是95式步枪, 
+那这个新的水缸就好比黄金AK , 它没有大小限制, 因此可以存放许许多多的事件.
+
+2. 同样的FLowable中也有这种方法, 对应的就是BackpressureStrategy.DROP和BackpressureStrategy.LATEST这两种策略.
+   
+   从名字上就能猜到它俩是干啥的, Drop就是直接把存不下的事件丢弃,Latest就是只保留最新的事件, 来看看它们的实际效果吧.
+  
+  
+博客来源（http://www.jianshu.com/p/36e0f7f43a51）
+1. 
